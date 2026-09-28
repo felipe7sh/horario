@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Horário — Brasília</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ───────────────────────────────── */
+    :root {
+      /* Surface */
+      --bg-base:       #000000;
+      --bg-elevated:   #1c1c1e;
+      --bg-card:       rgba(28, 28, 30, 0.72);
+      --bg-glass:      rgba(44, 44, 46, 0.60);
+      --bg-pill:       rgba(255,255,255,0.08);
+
+      /* Content */
+      --label-primary:   #ffffff;
+      --label-secondary: rgba(235, 235, 245, 0.60);
+      --label-tertiary:  rgba(235, 235, 245, 0.30);
+
+      /* Accent — iOS blue */
+      --accent:          #0a84ff;
+      --accent-soft:     rgba(10, 132, 255, 0.18);
+      --accent-glow:     rgba(10, 132, 255, 0.32);
+
+      /* Amber for countdown — warm, readable on dark */
+      --amber:           #ff9f0a;
+      --amber-soft:      rgba(255, 159, 10, 0.15);
+
+      /* Green for "próximo" pulse */
+      --green:           #30d158;
+
+      /* Separator */
+      --sep:             rgba(84, 84, 88, 0.65);
+
+      /* Typography scale (mirrors iOS Dynamic Type) */
+      --text-xs:   11px;
+      --text-sm:   13px;
+      --text-base: 17px;
+      --text-lg:   20px;
+      --text-xl:   28px;
+      --text-2xl:  40px;
+      --text-hero: 80px;
+
+      /* Radius */
+      --r-sm:  10px;
+      --r-md:  16px;
+      --r-lg:  22px;
+      --r-xl:  28px;
+
+      /* Spacing */
+      --safe-top:    env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-base);
+      color: var(--label-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: calc(var(--safe-top) + 48px);
+      padding-bottom: calc(var(--safe-bottom) + 40px);
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    /* ── Radial glow behind hero clock ──────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(10,132,255,0.13) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 390px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Status bar area ─────────────────────────────── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px 24px;
+    }
+    .status-bar .city-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-pill);
+      border-radius: 20px;
+      padding: 5px 12px 5px 9px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--label-secondary);
+      letter-spacing: -0.1px;
+    }
+    .status-bar .city-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .status-bar .sync-label {
+      font-size: var(--text-xs);
+      color: var(--label-tertiary);
+      font-weight: 400;
+    }
+
+    /* ── Hero clock section ──────────────────────────── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 0 36px;
+    }
+
+    .hero-clock {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .hero-time {
+      font-size: var(--text-hero);
+      font-weight: 700;
+      letter-spacing: -4px;
+      line-height: 1;
+      color: var(--label-primary);
+      font-variant-numeric: tabular-nums;
+      /* subtle text-shadow to lift off background */
+      text-shadow: 0 0 40px rgba(10,132,255,0.25);
+      transition: opacity 0.15s ease;
+    }
+
+    .hero-date {
+      margin-top: 12px;
+      font-size: var(--text-lg);
+      font-weight: 500;
+      color: var(--label-secondary);
+      letter-spacing: -0.3px;
+    }
+
+    .hero-weekday {
+      margin-top: 4px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--label-tertiary);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    /* API status badge */
+    .api-badge {
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-pill);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: var(--text-xs);
+      color: var(--label-tertiary);
+      font-weight: 400;
+    }
+    .api-badge .api-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .api-badge.error .api-dot { background: #ff453a; }
+    .api-badge.loading .api-dot { background: var(--amber); animation: pulse-dot 1s infinite; }
+
+    /* ── Section header ──────────────────────────────── */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0 2px 12px;
+    }
+    .section-title {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--label-secondary);
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    /* ── Cards ───────────────────────────────────────── */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-radius: var(--r-xl);
+      border: 1px solid var(--sep);
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.15s ease, border-color 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle gradient inside each card */
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Next card highlight */
+    .card.next {
+      border-color: rgba(10, 132, 255, 0.45);
+      background: rgba(10, 132, 255, 0.10);
+    }
+    .card.next::before {
+      background: linear-gradient(135deg, rgba(10,132,255,0.08) 0%, transparent 60%);
+    }
+
+    /* Past card dims */
+    .card.past {
+      opacity: 0.45;
+    }
+    .card.past .card-countdown { color: var(--label-tertiary); }
+
+    .card-left { flex: 1; min-width: 0; }
+
+    .card-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--label-tertiary);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .card-time {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      color: var(--label-primary);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .card.next .card-time { color: var(--accent); }
+
+    .card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .card-countdown {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: -0.8px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      text-align: right;
+    }
+    .card.next .card-countdown { color: var(--accent); }
+
+    .card-countdown-label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--label-tertiary);
+      letter-spacing: 0.2px;
+      text-align: right;
+    }
+
+    /* "próximo" badge */
+    .next-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--accent-soft);
+      border-radius: 20px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.1px;
+    }
+    .next-badge::before {
+      content: '';
+      display: block;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+
+    .past-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--label-tertiary);
+    }
+
+    /* Progress bar under the card row */
+    .card-progress-wrap {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: rgba(255,255,255,0.05);
+    }
+    .card-progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+    .card.past .card-progress-bar  { background: var(--sep); width: 100% !important; }
+
+    /* ── Footer ──────────────────────────────────────── */
+    .footer {
+      margin-top: 36px;
+      text-align: center;
+      font-size: var(--text-xs);
+      color: var(--label-tertiary);
+      line-height: 1.6;
+    }
+    .footer span { color: var(--label-secondary); font-weight: 500; }
+
+    /* ── Loading skeleton ────────────────────────────── */
+    .skeleton { animation: shimmer 1.4s ease infinite; }
+    @keyframes shimmer {
+      0%   { opacity: 0.3; }
+      50%  { opacity: 0.7; }
+      100% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="city-pill">
+        <span class="dot"></span>
+        São Paulo / Brasília
+      </div>
+      <span class="sync-label" id="syncLabel">sincronizando…</span>
+    </div>
+
+    <!-- Hero Clock -->
+    <section class="hero">
+      <div class="hero-clock">
+        <div class="hero-time skeleton" id="heroTime">--:--:--</div>
+      </div>
+      <div class="hero-date skeleton" id="heroDate">-- de ----- de ----</div>
+      <div class="hero-weekday skeleton" id="heroWeekday">-----------</div>
+    </section>
+
+    <!-- Fixed-time Cards -->
+    <div class="section-header">
+      <span class="section-title">Horários fixos</span>
+    </div>
+
+    <div class="cards" id="cards">
+      <!-- Rendered by JS -->
+    </div>
+
+  </div>
+
+  <script>
+    // ── Config ───────────────────────────────────────
+    const TARGETS = [
+      { time: "09:45" },
+      { time: "11:30" },
+      { time: "15:25" },
+      { time: "17:10" },
+    ];
+
+    // ── State ────────────────────────────────────────
+    let nowMs = Date.now();
+
+    // ── Utils ────────────────────────────────────────
+    const pad2 = n => String(n).padStart(2, "0");
+
+    function currentMs() {
+      return Date.now();
+    }
+
+    // ── Formatting ───────────────────────────────────
+
+    const WEEKDAYS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+    const MONTHS   = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+    function formatCountdown(diffSec) {
+      if (diffSec <= 0) return null;
+      const h = Math.floor(diffSec / 3600);
+      const m = Math.floor((diffSec % 3600) / 60);
+      const s = Math.floor(diffSec % 60);
+      if (h > 0) return `${h}h ${pad2(m)}m ${pad2(s)}s`;
+      if (m > 0) return `${m}m ${pad2(s)}s`;
+      return `${s}s`;
+    }
+
+    // ── Build cards (once) ───────────────────────────
+    function buildCards() {
+      const container = document.getElementById("cards");
+      container.innerHTML = "";
+      TARGETS.forEach((t, i) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.id = `card-${i}`;
+        card.innerHTML = `
+          <div class="card-left">
+            <div class="card-time">${t.time}</div>
+          </div>
+          <div class="card-right">
+            <div class="card-countdown skeleton" id="cd-${i}">--:--</div>
+            <div class="card-countdown-label" id="cdlbl-${i}">calculando…</div>
+            <div id="badge-${i}"></div>
+          </div>
+          <div class="card-progress-wrap">
+            <div class="card-progress-bar" id="prog-${i}" style="width:0%"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ── Tick ─────────────────────────────────────────
+    function tick() {
+      const ms = currentMs();
+      if (ms === null) return;
+
+      const dateObj = new Date(ms);
+
+      const fmt = (opts) =>
+        new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", ...opts });
+
+      const hh   = fmt({ hour: "2-digit",   hour12: false }).format(dateObj);
+      const mm   = fmt({ minute: "2-digit"                }).format(dateObj);
+      const ss   = fmt({ second: "2-digit"                }).format(dateObj);
+      const day  = fmt({ weekday: "long"                  }).format(dateObj);
+      const dNum = fmt({ day: "2-digit"                   }).format(dateObj);
+      const mon  = fmt({ month: "long"                    }).format(dateObj);
+      const yr   = fmt({ year: "numeric"                  }).format(dateObj);
+
+      document.getElementById("heroTime").textContent = `${hh}:${mm}:${ss}`;
+      document.getElementById("heroDate").textContent = `${dNum} de ${mon} de ${yr}`;
+      document.getElementById("heroWeekday").textContent = day.charAt(0).toUpperCase() + day.slice(1);
+
+      // Now values for countdown logic
+      const nowH   = parseInt(fmt({ hour:   "2-digit", hour12: false }).format(dateObj));
+      const nowMin = parseInt(fmt({ minute: "2-digit"                }).format(dateObj));
+      const nowSec = parseInt(fmt({ second: "2-digit"                }).format(dateObj));
+      const nowTotalSec = nowH * 3600 + nowMin * 60 + nowSec;
+
+      // Find the NEXT upcoming target
+      let nextIdx = -1;
+      TARGETS.forEach((t, i) => {
+        const [th, tm] = t.time.split(":").map(Number);
+        const tSec = th * 3600 + tm * 60;
+        if (tSec > nowTotalSec && nextIdx === -1) nextIdx = i;
+      });
+
+      TARGETS.forEach((t, i) => {
+        const [th, tm] = t.time.split(":").map(Number);
+        const tSec     = th * 3600 + tm * 60;
+        const diffSec  = tSec - nowTotalSec;
+        const isPast   = diffSec <= 0;
+        const isNext   = i === nextIdx;
+
+        const card   = document.getElementById(`card-${i}`);
+        const cdEl   = document.getElementById(`cd-${i}`);
+        const lblEl  = document.getElementById(`cdlbl-${i}`);
+        const badgeEl= document.getElementById(`badge-${i}`);
+        const progEl = document.getElementById(`prog-${i}`);
+
+        // Class state
+        card.className = "card" + (isPast ? " past" : isNext ? " next" : "");
+        cdEl.classList.remove("skeleton");
+
+        if (isPast) {
+          cdEl.textContent  = "Encerrado";
+          lblEl.textContent = "já passou hoje";
+          badgeEl.innerHTML = `<span class="past-badge">✓ passou</span>`;
+          progEl.style.width = "100%";
+        } else {
+          const fmt = formatCountdown(diffSec);
+          cdEl.textContent  = fmt;
+          lblEl.textContent = isNext ? "próximo horário" : "falta";
+          badgeEl.innerHTML = isNext
+            ? `<span class="next-badge">próximo</span>`
+            : "";
+
+          // Progress bar: fraction of day elapsed toward this target
+          const startOfDay = 0;
+          const frac = Math.max(0, Math.min(1, nowTotalSec / tSec));
+          progEl.style.width = (frac * 100).toFixed(1) + "%";
+        }
+      });
+    }
+
+    // ── Boot ─────────────────────────────────────────
+    buildCards();
+    ["heroTime","heroDate","heroWeekday"].forEach(id => {
+      document.getElementById(id).classList.remove("skeleton");
+    });
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
